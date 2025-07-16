@@ -1,6 +1,6 @@
 [project]
 name = "cbler"
-version = "1.0.3"
+version = "1.0.4"
 description = "Extensible code concatenator and clipboard tool"
 readme = "README.md"
 requires-python = ">=3.12"
