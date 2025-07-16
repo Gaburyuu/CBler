@@ -121,7 +121,7 @@ def diff(
     if staged:
         cmd.append("--cached")
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode("utf-8")
+        output = subprocess.check_output(cmd, stderr=subprocess.DEVNULL).decode("utf-8")
     except subprocess.CalledProcessError as e:
         console.print(f"[red]Error: {e.output.decode('utf-8')}[/red]")
         return
