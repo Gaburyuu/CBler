@@ -8,6 +8,7 @@ from rich.tree import Tree
 from rich.panel import Panel
 from rich.table import Table
 from rich import box
+import subprocess
 
 console = Console()
 
@@ -56,6 +57,18 @@ def _add_path_to_tree(tree: Tree, rel_path: str):
 app = typer.Typer(help="Concatenate source code files by language.")
 
 ## helpers
+
+
+def get_git_changed_files(path, staged=False):
+    cmd = ["git", "-C", str(path), "diff", "--name-only"]
+    if staged:
+        cmd.append("--cached")
+    try:
+        result = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
+        files = result.decode("utf-8").splitlines()
+        return set(files)
+    except subprocess.CalledProcessError:
+        return set()
 
 
 def parent_folder_name(rel_path: str) -> str:
@@ -167,6 +180,12 @@ def gml(
     ),
     regex: bool = typer.Option(
         True, help="Use regex for all filters (default: true)", show_default=False
+    ),
+    git_diff: bool = typer.Option(
+        False,
+        "--git-diff",
+        "--changed",
+        help="Only include files seen as changed by git",
     ),
 ):
     """Concatenate .gml and .yy code and copy to clipboard."""
@@ -301,6 +320,12 @@ def py(
     ),
     regex: bool = typer.Option(
         True, help="Use regex for all filters (default: true)", show_default=False
+    ),
+    git_diff: bool = typer.Option(
+        False,
+        "--git-diff",
+        "--changed",
+        help="Only include files seen as changed by git",
     ),
 ):
     """Concatenate python files and copy to clipboard."""
