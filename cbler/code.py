@@ -56,16 +56,24 @@ def _add_path_to_tree(tree: Tree, rel_path: str):
 
 app = typer.Typer(help="Concatenate source code files by language.")
 
+
 ## helpers
+def get_git_repo_root(path):
+    try:
+        cmd = ["git", "-C", str(path), "rev-parse", "--show-toplevel"]
+        result = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
+        return pathlib.Path(result.decode("utf-8").strip())
+    except Exception:
+        return None
 
 
-def get_git_changed_files(path, staged=False):
-    cmd = ["git", "-C", str(path), "diff", "--name-only"]
+def get_git_changed_files(repo_root, staged=False):
+    cmd = ["git", "-C", str(repo_root), "diff", "--name-only"]
     if staged:
         cmd.append("--cached")
     try:
         result = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
-        files = result.decode("utf-8").splitlines()
+        files = [f.replace("\\", "/") for f in result.decode("utf-8").splitlines()]
         return set(files)
     except subprocess.CalledProcessError:
         return set()
@@ -196,6 +204,8 @@ def gml(
     script_output = []
     base_path = pathlib.Path(path).resolve()
 
+    repo_root = get_git_repo_root(base_path) if git_diff else None
+
     pf = split_patterns(prefix)
     npf = split_patterns(not_prefix)
     sf = split_patterns(suffix)
@@ -207,11 +217,18 @@ def gml(
     parcf = split_patterns(parent_contains)
     nparcf = split_patterns(not_parent_contains)
 
+    changed_files = set()
+    if git_diff and repo_root:
+        changed_files = get_git_changed_files(repo_root)
+
     for root, _, files in os.walk(base_path):
         for file in files:
             file_path = os.path.join(root, file)
             rel_path = os.path.relpath(file_path, base_path)
             parent_name = parent_folder_name(rel_path)
+
+            if git_diff and rel_path.replace("\\", "/") not in changed_files:
+                continue
 
             # Positive filters
             if pf and not any_match(pf, file, regex, "start"):
@@ -340,11 +357,21 @@ def py(
     cf = split_patterns(contains)
     ncf = split_patterns(not_contains)
 
+    repo_root = get_git_repo_root(base_path) if git_diff else None
+
+    changed_files = set()
+    if git_diff and repo_root:
+        changed_files = get_git_changed_files(repo_root)
+
     for root, dirs, files in os.walk(base_path):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
         for file in files:
             file_path = os.path.join(root, file)
             rel_path = os.path.relpath(file_path, base_path)
+
+            if git_diff and rel_path.replace("\\", "/") not in changed_files:
+                continue
+
             # Inclusive filters
             if pf and not any_match(pf, file, regex, "start"):
                 skipped_files.append(rel_path)
@@ -373,7 +400,6 @@ def py(
 
             file_path = os.path.join(root, file)
             rel_path = os.path.relpath(file_path, base_path)
-            print(f"🐍 Python: {rel_path}")
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     code = f.read()

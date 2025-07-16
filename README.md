@@ -40,6 +40,7 @@ Each of these accepts multiple values and regex patterns:
 - `--contains`, `--not-contains`
 - `--path-contains`, `--not-path-contains`
 - `--parent-contains`, `--not-parent-contains` (matches immediate folder only)
+- `--changed` (only get's changed files from git diff)
 
 ---
 
