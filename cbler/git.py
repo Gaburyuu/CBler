@@ -98,6 +98,9 @@ def diff(
     staged: bool = typer.Option(
         False, "--staged", "-s", help="Show staged diff (default: unstaged)"
     ),
+    warnings: bool = typer.Option(
+        False, "--warnings", "-w", help="Show git warning lines in output"
+    ),
 ):
     """
     Show files changed in git diff (unstaged by default, use --staged for staged changes).
@@ -113,7 +116,7 @@ def diff(
             )
         )
 
-    # Get diff with --numstat (shows added/removed per file)
+    # Build git diff command; --numstat gives per-file added/removed line counts
     cmd = ["git", "-C", str(path), "diff", "--numstat"]
     if staged:
         cmd.append("--cached")
@@ -133,12 +136,19 @@ def diff(
     table.add_column("Removed", style="red", justify="right")
     table.add_column("File", style="cyan")
 
+    # Split output into lines and parse
     if not output.strip():
         table.add_row("-", "-", "[dim]No changes[/dim]")
     else:
         for line in output.strip().splitlines():
-            added, removed, filename = line.split("\t", 2)
-            table.add_row(added, removed, filename)
+            # Only process lines with exactly three tab-separated fields
+            parts = line.split("\t", 2)
+            if len(parts) == 3:
+                added, removed, filename = parts
+                table.add_row(added, removed, filename)
+            # If warnings are requested, print all other lines
+            elif warnings and line.strip():
+                console.print(f"[yellow][warn] {line}[/yellow]")
 
     console.print(table)
 
