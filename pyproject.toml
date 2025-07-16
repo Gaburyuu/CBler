@@ -11,5 +11,5 @@ dependencies = [
 ]
 
 [project.scripts]
-concat = "cbler.main:app"
+cbler = "cbler.main:app"
 

@@ -1,6 +1,5 @@
 import typer
-from concat import code, git  # add more as you extend
-# from concat import py  # placeholder for future
+from cbler import code, git  # add more as you extend
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
 
